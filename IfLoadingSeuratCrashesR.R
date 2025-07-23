@@ -1,4 +1,4 @@
-#Can do this is seurat crashes R
+#Sometimes HPC2N RStudio crashes when Seurat is loaded - can do this to fix
 db <- available.packages() 
 deps <- tools::package_dependencies("Seurat", db)$Seurat 
 install.packages(deps[21:45]) 
