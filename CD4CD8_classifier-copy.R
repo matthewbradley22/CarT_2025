@@ -12,7 +12,7 @@ library(caret)
 #Plot properly
 options(bitmapType="cairo") 
 
-# Load Seurat object containing cell cycle-regressed data
+# Load Seurat object for training model
 tcell <- LoadSeuratRds("/pfs/stor10/users/home/m/mb223/mystore/cartdata/tcelldata.ccreg.Rdata")
 
 # Visualize gene markers
