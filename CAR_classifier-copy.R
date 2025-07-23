@@ -1,4 +1,7 @@
+#WE ARE NOW LABELING CAR BASED ON ANY CAR EXPRESSION, SO THIS IS NOT USED FOR LABELING CAR + VS CAR - CELLS CURRENTLY
+
 #ML model is loaded here, applied to car t data in donor_analysis.R
+
 
 library(dplyr)
 library(Matrix)
