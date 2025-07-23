@@ -10,13 +10,13 @@ most other scripts.
 1. donor_analysis.R: This script shows how data was originally read in and processed, including donor labelling
 from vireo output and doublet labeling.
 
-2: cellPhaseAnalysis.R: Uses data processed in donor_analysis.R to create cell phase plots in Fig. 2, as well
+2. cellPhaseAnalysis.R: Uses data processed in donor_analysis.R to create cell phase plots in Fig. 2, as well
 as some other cell phase plots
 
-3: cellCycleRegressed.R: This script was used to regress out cell cycle, and the resulting data
+3. cellCycleRegressed.R: This script was used to regress out cell cycle, and the resulting data
 called T_cells_noCC is used in all downstream analyses. Also has Figure 2 UMAP code
 
-4: DEGPathAnalyses.R: Has code to create heatmaps of 50 top important genes in Fig 2
+4. DEGPathAnalyses.R: Has code to create heatmaps of 50 top important genes in Fig 2
 
 Other:
 
