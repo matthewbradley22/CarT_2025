@@ -1,11 +1,10 @@
 # 2025 Car-T Project
 
 ## Script descriptions 
+### (in a loose order of how one could run through the code)
 
 A note before running anything: CarT_project_functions is a script of functions used throughout the analyses. It is sourced in
 most other scripts.
-
-### Loose order of how one could run through scripts
 
 1. donor_analysis.R: This script shows how data was originally read in and processed, including donor labelling
 from vireo output and doublet labeling.
