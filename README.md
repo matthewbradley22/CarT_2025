@@ -23,5 +23,4 @@ Other:
 dengPublicData: Create scatter plots of our data lfc versus deng public data response groups. This script is where
 public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Sec8 is read in and processed
 
-TODO: Many things
-      Add how we did machine learning labeling
+TODO: Add how we did machine learning labeling
