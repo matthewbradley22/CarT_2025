@@ -9,17 +9,21 @@ most other scripts.
 1. <em>donor_analysis.R</em>: This script shows how data was originally read in and processed, including donor labelling
 from vireo output and doublet labeling.
 
-2. <em>cellPhaseAnalysis.R</em>: Uses data processed in donor_analysis.R to create cell phase plots in Fig. 2, as well
+2. <em>Splite_donor_analysis.R</em>: The beginning of this script loads in the xgboost classifier used for ML labelling
+and labels CD4 and CD8 cells. To see the xgboost model creation look at <em>CD4CD8_classifier-copy.R</em>. May combine
+the classification from Splite_donor_analysis and add it to donor_analysis to reduce number of scripts.
+   
+3. <em>cellPhaseAnalysis.R</em>: Uses data processed in donor_analysis.R to create cell phase plots in Fig. 2, as well
 as some other cell phase plots
 
-3. <em>cellCycleRegressed.R</em>: This script was used to regress out cell cycle, and the resulting data
+4. <em>cellCycleRegressed.R</em>: This script was used to regress out cell cycle, and the resulting data
 called T_cells_noCC is used in all downstream analyses. Also has Figure 2 UMAP code
 
-4. <em>DEGPathAnalyses.R</em>: Has code to create heatmaps of 50 top important genes in Fig 2
+5. <em>DEGPathAnalyses.R</em>: Has code to create heatmaps of 50 top important genes in Fig 2
 
 ### Other:
 
 <em>dengPublicData.R</em>: Create scatter plots of our data lfc versus deng public data response groups. This script is where
 public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Sec8 is read in and processed
 
-TODO: Add how we did machine learning labeling
+
