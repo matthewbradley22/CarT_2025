@@ -11,7 +11,7 @@ from vireo output and doublet labeling.
 
 2. <em>Split_donor_analysis.R</em>: The beginning of this script loads in the xgboost classifier used for ML labelling
 and labels CD4 and CD8 cells. To see the xgboost model creation look at <em>CD4CD8_classifier-copy.R</em>. May combine
-the classification from Splite_donor_analysis and add it to donor_analysis to reduce number of scripts.
+the classification from Split_donor_analysis and add it to donor_analysis to reduce number of scripts.
    
 3. <em>cellPhaseAnalysis.R</em>: Uses data processed in donor_analysis.R to create cell phase plots in Fig. 2, as well
 as some other cell phase plots
