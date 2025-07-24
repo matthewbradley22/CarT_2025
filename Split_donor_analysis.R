@@ -18,9 +18,7 @@ source("mystore/cartdata/scripts/CarT_project_functions.R")
 #Make UMAPs plot properly
 options(bitmapType="cairo") 
 
-# T_cells <-  LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
-# T_cells$CAR_pred <- as.factor(T_cells$CAR_pred)
-# T_cells$day = factor(T_cells$day, levels = c("D7", "D13"))
+T_cells <- LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 
 T_cells_noCC <- LoadSeuratRds('mystore/cartdata/data/T_cells_noCC.rds')
 #Can skip ML if loading in ./mystore/cartdata/data/tcell_deseqdat_singlets.rds
@@ -31,27 +29,30 @@ T_cells_noCC <- LoadSeuratRds('mystore/cartdata/data/T_cells_noCC.rds')
 #I think default options for saving and loading an xgboost model can change it, 
 # so may be best not to use this
 
-# car_classifier <- xgb.load("mystore/cartdata/data/car_classifier.model")
-# CAR_genes <- readRDS("mystore/cartdata/data/CAR_classifier_variableGenes.rds")
-# CDClassifier_1 <- xgb.load("mystore/cartdata/data/CD_classifier.model")
-# CD4CD8_genes <- readRDS("mystore/cartdata/data/CD4CD8Classifier_variableGenes.rds")
-# 
-# #Quick look at car vs hypoxia'
-# T_cells_CAR <- subset(T_cells, CAR_pred == 1 & CAR != 'untransduced')
-# table(T_cells_CAR$hypoxia,T_cells_CAR$CAR ) %>% as.data.frame() %>% filter(Var2 != 'untransduced') %>% ggplot(aes(x = Var1, y = Var2, fill = Freq))+
-#    geom_tile()+
-#   geom_text(aes(label=Freq), col = 'white')+
-#   xlab('Hypoxia condition')+
-#   ylab('CAR')
-# 
-# emat <- FetchData(T_cells, vars = CAR_genes) 
+#car_classifier <- xgb.load("mystore/cartdata/data/car_classifier.model")
+#CAR_genes <- readRDS("mystore/cartdata/data/CAR_classifier_variableGenes.rds")
+CDClassifier <- xgb.load("mystore/cartdata/data/CD_classifier.model")
+CD4CD8_genes <- readRDS("mystore/cartdata/data/CD4CD8Classifier_variableGenes.rds")
+
+#Use claaifiers to assign CD4/CD8
+ematCD <- FetchData(T_cells, vars = CD4CD8_genes)
+CDTMat <- xgb.DMatrix(data = as.matrix(ematCD))
+pred <- predict(CDClassifier, CDTMat)
+preds_outcome <- ifelse(pred < 0.5, 0, 1)
+preds_outcome <- ifelse(preds_outcome == 0, "CD4", "CD8")
+T_cells$CD_pred <- preds_outcome
+
+
+#We now label CAR+ cells using CAR expression, rather than machine learning, so commented out ML code
+
+# emat <- FetchData(T_cells, vars = CAR_genes)
 # carTMat <- xgb.DMatrix(data = as.matrix(emat))
 # 
 # pred <- predict(car_classifier, carTMat) #car_classifier from CAR_classifier.R
 # pred_outcome <- ifelse(pred < 0.5, 0, 1)
 # T_cells$CAR_pred <- pred_outcome
-# T_cells[[]] %>% select(day, CAR, CAR_pred) %>% 
-#   group_by(day, CAR) %>% summarize(percentExp = sum(CAR_pred)/n()) %>% 
+# T_cells[[]] %>% select(day, CAR, CAR_pred) %>%
+#   group_by(day, CAR) %>% summarize(percentExp = sum(CAR_pred)/n()) %>%
 #   ggplot(aes(x = factor(day, levels = c("D7", "D13")), y = percentExp, fill = CAR))+
 #   geom_bar(stat = 'identity', position="dodge")+
 #   xlab("Day")+
@@ -60,13 +61,6 @@ T_cells_noCC <- LoadSeuratRds('mystore/cartdata/data/T_cells_noCC.rds')
 # carPreds = T_cells[[]] %>% group_by(CAR, CAR_pred) %>% summarise(amount = n()) %>%
 #   pivot_wider(names_from = CAR_pred, values_from = amount)
 # colnames(carPreds) <- c("CAR", "Pred no car", "Pred car")
-# 
-# ematCD_1 <- FetchData(deseqDat, vars = CD4CD8_genes) 
-# CDTMat_1 <- xgb.DMatrix(data = as.matrix(ematCD_1))
-# pred_1 <- predict(CDClassifier_1, CDTMat_1) 
-# preds_outcome_1 <- ifelse(pred_1 < 0.5, 0, 1)
-# preds_outcome_1 <- ifelse(preds_outcome == 0, "CD4", "CD8")
-# T_cells$CD_pred_1 <- preds_outcome
 
 #Split by day, CD, and CAR, (not phase?)
 #Make a bunch of UMAPs by subset. At some point write function to shorten this

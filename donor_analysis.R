@@ -151,42 +151,6 @@ deseqDat$donor_id = factor(deseqDat$donor_id)
 deseqDat$day = factor(deseqDat$day)
 
 
-#TO APPLY MACHINE LEARNING USE SPLIT_DONOR_ANALYSIS SCRIPT
-
-#Machine learning approach to find untransduced t cells and distinguish CD4 and 8
-#variable features from data either in CAR_classifier.R or CD4CD8_classifier.R 
-#depending on which model
-emat <- FetchData(deseqDat, vars = VariableFeatures(tcell)) 
-
-#CAR pos/neg assignments
-ematCar <- emat[,!colnames(emat) %in% c("virus-M28z", "virus-MBBz", "EGFR")]
-carTMat <- xgb.DMatrix(data = as.matrix(ematCar))
-
-pred <- predict(car_classifier, carTMat) #car_classifier from CAR_classifier.R
-pred_outcome <- ifelse(pred < 0.5, 0, 1)
-deseqDat$CAR_pred <- pred_outcome
-deseqDat[[]] %>% select(day, CAR, CAR_pred) %>% 
-  group_by(day, CAR) %>% summarize(percentExp = sum(CAR_pred)/n()) %>% 
-  ggplot(aes(x = factor(day, levels = c("D7", "D13")), y = percentExp, fill = CAR))+
-  geom_bar(stat = 'identity', position="dodge")+
-  xlab("Day")+
-  ylab("Proportion CAR expression")
-
-carPreds = deseqDat[[]] %>% group_by(CAR, CAR_pred) %>% summarise(amount = n()) %>%
-  pivot_wider(names_from = CAR_pred, values_from = amount)
-colnames(carPreds) <- c("CAR", "Pred no car", "Pred car")
-
-
-#CD assignments
-ematCD <- emat[,!colnames(emat) %in% c("CD4","CD8A")]
-CDTMat <- xgb.DMatrix(data = as.matrix(ematCD))
-pred <- predict(CDClassifier, CDTMat) 
-preds_outcome <- ifelse(pred < 0.5, 0, 1)
-preds_outcome <- ifelse(preds_outcome == 0, "CD4", "CD8")
-deseqDat$CD_pred <- preds_outcome
-table(deseqDat$CD_pred)
-
-
 #Comparing one group to average of rest in deseq
 dds7Groups = getPseudoBulkObject(day7, c("CAR", "hypoxia"), intercept = "exclude")
 dds7Groups <- DESeq(dds7Groups)
@@ -205,30 +169,31 @@ res13NH_HH <- results(dds13, name="hypoxia_NH_vs_HH")
 write.csv(res13NH_HH, "./mystore/cartdata/Day13NH_HH.csv")
 
 
+####This was an early attempt to see overall effects of covariates on data using MANOVA. ####
 #Attempt to see effects of covariates with linear model
 #Pull out expression data. Subset for figuring out workflow
 
 #Loop through manovas and plot distribution of pillai's
 #Try parametric bootstrap with normal distributions
-datForModel <- t(tCell_adata[["RNA"]]$data[])
-bootstrapManova <- function(){
-  keepCols <- sample.int(ncol(datForModel), 300)
-  datForModel1 <- datForModel[,keepCols] #Start with 300 genes
-  datForModel1 <- datForModel1[,(!colSums(datForModel1) == 0)]
-  linearDependentCols <- caret::findLinearCombos(as.matrix(datForModel1))
-  if(!is.null(linearDependentCols$remove)){
-    datForModel1 <- datForModel1[,-linearDependentCols$remove]
-  }
-  manModel <- manova(as.matrix(datForModel1) ~ tcellPool1$Phase + tcellPool1$hypoxia)
-  testStats = summary(manModel)$stats[,"Pillai"] #Differs from car::Anova sometimes
-  data.frame(groups = c("Phase", "hypoxia"), testStat = testStats[-length(testStats)])
-}
-modelRuns <- lapply(seq_len(100), function(x) bootstrapManova())
-modelRuns = do.call(rbind, modelRuns)
-ggplot(modelRuns, aes(x = groups, y = testStat))+
-  geom_boxplot()
-
-ggplot(modelRuns, aes(testStat, fill = groups)) + geom_density(alpha = 0.2)
+# datForModel <- t(tCell_adata[["RNA"]]$data[])
+# bootstrapManova <- function(){
+#   keepCols <- sample.int(ncol(datForModel), 300)
+#   datForModel1 <- datForModel[,keepCols] #Start with 300 genes
+#   datForModel1 <- datForModel1[,(!colSums(datForModel1) == 0)]
+#   linearDependentCols <- caret::findLinearCombos(as.matrix(datForModel1))
+#   if(!is.null(linearDependentCols$remove)){
+#     datForModel1 <- datForModel1[,-linearDependentCols$remove]
+#   }
+#   manModel <- manova(as.matrix(datForModel1) ~ tcellPool1$Phase + tcellPool1$hypoxia)
+#   testStats = summary(manModel)$stats[,"Pillai"] #Differs from car::Anova sometimes
+#   data.frame(groups = c("Phase", "hypoxia"), testStat = testStats[-length(testStats)])
+# }
+# modelRuns <- lapply(seq_len(100), function(x) bootstrapManova())
+# modelRuns = do.call(rbind, modelRuns)
+# ggplot(modelRuns, aes(x = groups, y = testStat))+
+#   geom_boxplot()
+# 
+# ggplot(modelRuns, aes(testStat, fill = groups)) + geom_density(alpha = 0.2)
 
 #Paper about annotating t cells https://www.frontiersin.org/journals/immunology/articles/10.3389/fimmu.2023.1306169/full
 
