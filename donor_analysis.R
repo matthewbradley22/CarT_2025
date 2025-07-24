@@ -151,23 +151,6 @@ deseqDat$donor_id = factor(deseqDat$donor_id)
 deseqDat$day = factor(deseqDat$day)
 
 
-#Comparing one group to average of rest in deseq
-dds7Groups = getPseudoBulkObject(day7, c("CAR", "hypoxia"), intercept = "exclude")
-dds7Groups <- DESeq(dds7Groups)
-res <- results(dds7Groups, 
-        contrast=list(c("CARM28z"), 
-                      c("CARMBBz","CARuntransduced")),
-        listValues=c(1, -1/2))
-
-#Compare hypoxias
-dds7 <- DESeq(dds7)
-dds13 <- DESeq(dds13)
-resultsNames(dds7)
-resultsNames(dds13)
-res7Hypoxia <- results(dds7, name="hypoxia_NN_vs_HH")
-res13NH_HH <- results(dds13, name="hypoxia_NH_vs_HH")
-write.csv(res13NH_HH, "./mystore/cartdata/Day13NH_HH.csv")
-
 
 ####This was an early attempt to see overall effects of covariates on data using MANOVA. ####
 #Attempt to see effects of covariates with linear model

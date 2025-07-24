@@ -109,89 +109,15 @@ geneNames <- mapIds(org.Hs.eg.db, keys =  sigGenesInPath,
 #Get loading score
 data.frame(genes_cd4_day7[which(names(genes_cd4_day7) %in% names(geneNames))]) 
 
-#DESeq comparisons
-CD4_deseq <- DESeq(CD4_deseq)
-CD8_deseq <- DESeq(CD8_deseq)
-
+####Example comparing one group (untransduced) to mean of other groups####
+CD4_bulk <- subset(T_cells, CD_pred == 'CD4')
+CD4_bulk <- getPseudoBulkObject(CD4_bulk, designVars = c("CAR","hypoxia", "Phase", "donor_id", "day"))
+CD4_deseq <- DESeq(CD4_bulk)
 
 resCD4 = deseqOneVsMean(CD4_deseq, "CARuntransduced", c("CARM1XX", "CARM28z", "CARMBBz"))
 arrange(data.frame(resCD4), padj) %>% filter(log2FoldChange > 0 & padj < 1E-20) %>% 
   rownames()
 
-resCD8 = deseqOneVsMean(CD8_deseq, "CARMBBz", c("CARM28z", "CARM1XX"))
-arrange(data.frame(resCD8), padj)
-write.csv(resCD8, "mystore/cartdata/data/CD8CARMBBzvsAll.csv")
-
-#Psuedobulk UMAP
-
-T_cells_UMAP <- getPseudoBulkUMAP(T_cells_noCC, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred",
-                                             "CD_pred", "day"))
-
-ggplot(umap_plot_df,aes(x = X1,y = X2, color = CD_pred)) +
-  geom_point() +
-  xlab("UMAP 1")+
-  ylab("UMAP 2")+
-  ggtitle("CD Type (ML prediction)")
-
-#Pseudobulk UMAP by cd
-CD4 <- subset(T_cells, CD_pred == "CD4")
-CD8 <- subset(T_cells, CD_pred == "CD8")
-
-CD4_deseq <- getPseudoBulkUMAP(CD4, 
-                               vars = c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred", "day"))
-
-CD8_deseq <- getPseudoBulkUMAP(CD8, 
-                               vars = c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred", "day"))
-ggplot(CD4_deseq,aes(x = X1,y = X2, color = CAR)) +
-  geom_point() +
-  xlab("UMAP 1")+
-  ylab("UMAP 2")+
-  ggtitle("CD8 CAR")
-
-#Pseudobulk UMAP by day and CD
-
-CD4Day7_umap <- getPseudoBulkUMAP(CD4_day7, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred"))
-CD4Day13_umap <- getPseudoBulkUMAP(CD4_day13, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred"))
-CD8Day7_umap <- getPseudoBulkUMAP(CD8_day7, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred"))
-CD8Day13_umap <- getPseudoBulkUMAP(CD8_day13, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred"))
-
-ggplot(CD8Day7_umap,aes(x = X1,y = X2, color = CAR)) +
-  geom_point() +
-  xlab("UMAP 1")+
-  ylab("UMAP 2")+
-  ggtitle("CD8 Day 13 Phase")
-
-#Explore car trends in cd8 day 7
-CD8_day7$CAR<-relevel(CD8_day7$CAR, ref="untransduced")
-CD8_day7_bulk <- getPseudoBulkObject(CD8_day7, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred"))
-CD8_day7_bulk <- DESeq(CD8_day7_bulk)
-
-
-resultsNames(CD8_day7_bulk)
-M1vsUntansduced <- lfcShrink(CD8_day7_bulk, coef="CAR_M1XX_vs_untransduced", type="apeglm")
-MBvsM1 <- lfcShrink(CD8_day7_bulk, coef="CAR_MBBz_vs_M1XX", type="apeglm")
-UntransducedVsM1 <- lfcShrink(CD8_day7_bulk, coef="CAR_untransduced_vs_M1XX", type="apeglm")
-
-printOrderedDEGs <- function(degList, only.pos = TRUE){
-  if(only.pos){
-    degList[order(degList$padj),]  %>% as.data.frame() %>% filter(log2FoldChange>0) %>% head(n = 100) 
-  }else{
-    degList[order(degList$padj),]  %>% as.data.frame() %>% head(n = 100) 
-  }
-  
-}
-printOrderedDEGs(M1vsUntansduced, only.pos = T)
-plotCounts(CD8_day7_bulk, gene="BIRC3", intgroup="CAR")
-
-M2vsM1df <- M2vsM1[order(M2vsM1$padj),]  %>% as.data.frame() %>% filter(log2FoldChange<0) %>% head(n = 100) 
-M2vsM1df$gene = rownames(M2vsM1df)
-MBvsM1df <- MBvsM1[order(MBvsM1$padj),] %>%  as.data.frame() %>% filter(log2FoldChange<0) %>% head(n = 100)
-MBvsM1df$gene = rownames(MBvsM1df)
-UntransducedVsM1df <- UntransducedVsM1[order(UntransducedVsM1$padj),]  %>% head(n = 100) %>% as.data.frame()
-M1vsM2MB <- intersect(rownames(M2vsM1df), rownames(MBvsM1df))
-
-write.csv(M2vsM1df, "./mystore/cartdata/data/M2vsM1CAR.csv",  row.names=FALSE, quote = FALSE)
-plotCounts(CD8Day7, gene="MT-ND5", intgroup="CAR")
 
 
 
