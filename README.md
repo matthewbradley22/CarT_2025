@@ -26,4 +26,6 @@ called T_cells_noCC is used in all downstream analyses. Also has Figure 2 UMAP c
 <em>dengPublicData.R</em>: Create scatter plots of our data lfc versus deng public data response groups. This script is where
 public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Sec8 is read in and processed
 
+<em>hypoxiaAnalysis.R</em>: This script is mostly exploratory analysis, UMAPS, volcano plots etc...
+
 
