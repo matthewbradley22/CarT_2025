@@ -21,13 +21,9 @@ options(bitmapType="cairo")
 T_cells <- LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 
 T_cells_noCC <- LoadSeuratRds('mystore/cartdata/data/T_cells_noCC.rds')
-#Can skip ML if loading in ./mystore/cartdata/data/tcell_deseqdat_singlets.rds
-#Machine learning approach to find untransduced t cells and distinguish CD4 and 8
-#variable features from data either in CAR_classifier.R or CD4CD8_classifier.R 
-#depending on which model
 
-#I think default options for saving and loading an xgboost model can change it, 
-# so may be best not to use this
+#Machine learning approach to distinguish CD4 and 8 cells. Variable features from data 
+#either in CAR_classifier.R or CD4CD8_classifier.R depending on which model
 
 #car_classifier <- xgb.load("mystore/cartdata/data/car_classifier.model")
 #CAR_genes <- readRDS("mystore/cartdata/data/CAR_classifier_variableGenes.rds")
@@ -62,62 +58,8 @@ T_cells$CD_pred <- preds_outcome
 #   pivot_wider(names_from = CAR_pred, values_from = amount)
 # colnames(carPreds) <- c("CAR", "Pred no car", "Pred car")
 
-#Split by day, CD, and CAR, (not phase?)
-#Make a bunch of UMAPs by subset. At some point write function to shorten this
-#Bystanders
-bystanderCells <- subset(T_cells, CAR_pred == 0)
 
-bystander7 <- subset(bystanderCells, day == "D7")
-bystander13 <- subset(bystanderCells, day == "D13")
-
-bystander7 <- prepUMAP(bystander7)
-bystander13 <- prepUMAP(bystander13)
-
-DimPlot(bystander7) + ggtitle("Day 7 bystanders")
-DimPlot(bystander13) + ggtitle("Day 13 bystanders")
-
-#CAR experssers
-CARCells <- subset(T_cells, CAR_pred == 1)
-
-CARCells7 <- subset(CARCells, day == "D7")
-CARCells13 <- subset(CARCells, day == "D13")
-
-CARCells7 <- prepUMAP(CARCells7)
-CARCells13 <- prepUMAP(CARCells13)
-
-DimPlot(CARCells7) + ggtitle("Day 7 CAR cells")
-DimPlot(CARCells13) + ggtitle("Day 13 CAR cells")
-
-#CD cells
-CD4 <- subset(T_cells_noCC, CD_pred == "CD4")
-CD8 <- subset(T_cells, CD_pred == "CD8")
-
-CD4_day7 <- subset(CD4, day == "D7")
-CD4_day13 <- subset(CD4, day == "D13")
-
-CD8_day7 <- subset(CD8, day == "D7")
-CD8_day13 <- subset(CD8, day == "D13")
-
-CD4_day7 <- prepUMAP(CD4_day7)
-CD4_day13 <- prepUMAP(CD4_day13)
-CD8_day7 <- prepUMAP(CD8_day7)
-CD8_day13 <- prepUMAP(CD8_day13)
-
-DimPlot(CD4_day7) + ggtitle("CD4 day 7")
-DimPlot(CD4_day13)+ ggtitle("CD4 day 13")
-DimPlot(CD8_day7)+ ggtitle("CD8 day 7")
-DimPlot(CD8_day13)+ ggtitle("C8 day 13")
-
-
-#untransduced analysis split by CD
-CD4 <- subset(T_cells, CD_pred == "CD4" & CAR_pred == 0)
-CD8 <- subset(T_cells, CD_pred == "CD8" & CAR_pred == 0)
-
-
-
-#Function from donor_analysis.R
-#Not sure whether or not to include day variable here
-
+####Looking at PCA loadings, running Gene ontology on important genes and plotting results #### 
 #Function to prepare data for topGO analysis
 #Get top 5 pcs, get genes and loading value for given PC (which PC)
 getTopGODat <- function(seuObj, designVars, whichPC = 1){
@@ -127,14 +69,12 @@ getTopGODat <- function(seuObj, designVars, whichPC = 1){
   dat_genes
 }
 
+CD4_day7 <- subset(T_cells, day == "D7" & CD_pred == 'CD4')
+
 genes_cd4_day7 <- getTopGODat(CD4_day7, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 3)
 genes_cd8_day7 <-  getTopGODat(CD8_day7, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 1)
 genes_cd4_day13 <- getTopGODat(CD4_day13, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 2)
 genes_cd8_day13 <- getTopGODat(CD8_day13, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 2)
-
-getPCAGrid(CD4_day7, c("hypoxia", "CAR", "Phase", "donor_id"), rowNum = 2)
-getPCAGrid(CD8_deseq, c("hypoxia", "CAR", "Phase", "donor_id"), rowNum = 2)
-getPCAGrid(CD4_day7_bulk, c("hypoxia", "CAR", "Phase", "donor_id"), rowNum = 2)
 
 #topGO wants a function that gives a score threshold for genes.
 #We have genes with loading values and want to take top 100 absolute values
@@ -308,41 +248,5 @@ ggplot(virusCounts, aes(x = CAR, y = PercentExpressing, fill = Virus))+
   geom_bar(stat = 'identity', position="dodge") + ggtitle('Virus Expression by CAR group (CD8 cells)')+
   ylab('Percent cells expressing virus')
 
-#Separate by hypoxia and day
-HHD7 <- subset(T_cells, hypoxia == 'HH' & day == 'D7')
-NND7 <- subset(T_cells, hypoxia == 'NN' & day == 'D7')
-HHD13 <- subset(T_cells, hypoxia == 'HH' & day == 'D13')
-NHD13 <- subset(T_cells, hypoxia == 'NH' & day == 'D13')
-NND13 <- subset(T_cells, hypoxia == 'NN' & day == 'D13')
 
-HHD7 <- prepUMAP(HHD7, regressCC = 'CC')
-ElbowPlot(HHD7)
-HHD7 <- finishUMAP(HHD7, dimNeighbors = 15)
-DimPlot(HHD7) + ggtitle('Day 7 HH')
-HHD7markers <- FindAllMarkers(HHD7, only.pos = TRUE)
-HHD7markers <- filter(HHD7markers, p_val_adj < 0.01)
-topClusterGenesHHD7 <- HHD7markers %>% group_by(cluster) %>% slice_max(order_by = p_val_adj, n = 30) %>% .$gene
-
-NND7 <- prepUMAP(NND7, regressCC = 'CC')
-ElbowPlot(NND7)
-NND7 <- finishUMAP(NND7, dimNeighbors = 15)
-DimPlot(NND7) + ggtitle('Day 7 NN')
-NND7markers <- FindAllMarkers(NND7, only.pos = TRUE)
-NND7markers <- filter(NND7markers, p_val_adj < 0.01)
-topClusterGenesNND7 <- NND7markers %>% group_by(cluster) %>% slice_max(order_by = p_val_adj, n = 30) %>% .$gene
-
-HHD13 <- prepUMAP(HHD13, regressCC = 'CC')
-ElbowPlot(HHD13)
-HHD13 <- finishUMAP(HHD13, dimNeighbors = 15)
-DimPlot(HHD13) + ggtitle('Day 13 HH')
-
-NHD13 <- prepUMAP(NHD13, regressCC = 'CC')
-ElbowPlot(NHD13)
-NHD13 <- finishUMAP(NHD13, dimNeighbors = 15)
-DimPlot(NHD13) + ggtitle('Day 13 NH')
-
-NND13 <- prepUMAP(NND13, regressCC = 'CC')
-ElbowPlot(NND13)
-NND13 <- finishUMAP(NND13, dimNeighbors = 15)
-DimPlot(NND13) + ggtitle('Day 13 NN')
 
