@@ -11,17 +11,49 @@ source("mystore/cartdata/scripts/CarT_project_functions.R")
 #Plot properly
 options(bitmapType="cairo") 
 
+#Load in data 
 T_cells <-  LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 T_cells$day = factor(T_cells$day, levels = c("D7", "D13"))
 T_cells$CAR_pred = factor(T_cells$CAR_pred)
 
-#Look at top 50 genes
-CD4 <- subset(T_cells, CD_pred == "CD4")
-CD8 <- subset(T_cells, CD_pred == "CD8")
 
+#Look at top 50 genes
 #Load in gene set from paper: 
 importantGenes <- read.csv("mystore/cartdata/data/importantGenesWithDetails.csv", header = F)
 colnames(importantGenes) <- c("gene", "CD", "type")
+importantGenes <- importantGenes[with(importantGenes, order(CD, type)), ]
+
+#Heatmap of important genes
+t_cell_bulk <- getPseudoBulkObject(T_cells, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred", "day", "CD_pred"), return.Seurat = TRUE)
+t_cell_bulk[[]] <- t_cell_bulk[[]] %>% mutate("heatmapGroups" = paste(CAR, hypoxia, day, sep = "_"))
+t_cell_bulk$heatmapGroups <- gsub('untransduced', 'un', t_cell_bulk$heatmapGroups)
+t_cell_bulk$heatmapGroups <- gsub('MBBz', 'MB', t_cell_bulk$heatmapGroups)
+t_cell_bulk$heatmapGroups <- gsub('M28z', 'M2', t_cell_bulk$heatmapGroups)
+t_cell_bulk$heatmapGroups <- gsub('M1XX', 'M1', t_cell_bulk$heatmapGroups)
+
+cd4_bulk <- subset(t_cell_bulk, CD_pred == "CD4")
+cd8_bulk <- subset(t_cell_bulk, CD_pred == "CD8")
+
+
+#Pseudobulk heatmaps in Fig. 2. Saved dimensions 17 x 20. I just preview in browser and download these, rather than save to hpc2n
+DoHeatmap(cd4_bulk, features = importantGenes$gene, group.by = c("heatmapGroups"), size = 10)+
+  guides(colour=FALSE) +
+  theme(axis.text.y = element_text(size = 25))
+
+DoHeatmap(cd8_bulk, features = importantGenes$gene, group.by = c("heatmapGroups"), size = 10)+
+  guides(colour=FALSE) +
+  theme(axis.text.y = element_text(size = 25))
+
+avg <- AverageExpression(t_cell_bulk, group.by = "CAR", return.seurat = TRUE)
+DoHeatmap(avg, features = importantGenes$gene, draw.lines = F)+
+  guides(colour=FALSE)
+
+
+DoHeatmap(T_cells, features = importantGenes$gene, draw.lines = F, group.by = 'day')+
+  guides(colour=FALSE)
+
+
+#Create violin plot of each group of genes
 importantGenes <- importantGenes %>% separate_longer_delim(type, delim = "/")
 CD4Genes <- subset(importantGenes, CD == "CD4" | CD == "CD4 and CD8")
 CD8Genes <- subset(importantGenes, CD == "CD8" | CD == "CD4 and CD8")
@@ -39,6 +71,9 @@ CD8Exhaustion <- list(subset(CD8Genes, type == "Exhaustion")$gene)
 CD8Inhibition <- list(subset(CD8Genes, type == "Inhibition")$gene)
 CD8List = list(CD8Inflammation, CD8Cytoxicity, CD8Exhaustion, CD8Inhibition)
 names(CD8List) <- list("CD8Inflammation", "CD8Cytoxicity", "CD8Exhaustion", "CD8Inhibition")
+
+CD4 <- subset(T_cells, CD_pred == "CD4")
+CD8 <- subset(T_cells, CD_pred == "CD8")
 
 for(i in 1:length(CD4List)){
   CD4 <- AddModuleScore(CD4, features = CD4List[[i]], name = names(CD4List[i]))
@@ -89,37 +124,10 @@ CD8Day13Genes <- getTopGenes(CD8Day13_deseq, geneList = CD8Genes)
 plotTopGenes(cd8Day7Genes) + ggtitle("CD8 Day 7 DEGs")+
   theme(axis.title.y=element_text(size=16))
 
-#Heatmap of important genes
-importantGenes <- importantGenes[with(importantGenes, order(CD, type)), ]
-
-t_cell_bulk <- getPseudoBulkObject(T_cells, c("CAR","hypoxia", "Phase", "donor_id", "CAR_pred", "day", "CD_pred"), return.Seurat = TRUE)
-
-#Could order by cd4 expression too
-avgExpCD <- AverageExpression(t_cell_bulk, features = importantGenes$gene, group.by = "CD_pred")$RNA
-importantGenes_orderedCD <- as.data.frame(avgExpCD)[with(as.data.frame(avgExpCD), order(-CD4)),] %>% rownames()
-
-t_cell_bulk[[]] <- t_cell_bulk[[]] %>% mutate("heatmapGroups" = paste(CAR, hypoxia, day, sep = "_"))
-t_cell_bulk$heatmapGroups <- gsub('untransduced', 'un', t_cell_bulk$heatmapGroups)
-t_cell_bulk$heatmapGroups <- gsub('MBBz', 'MB', t_cell_bulk$heatmapGroups)
-t_cell_bulk$heatmapGroups <- gsub('M28z', 'M2', t_cell_bulk$heatmapGroups)
-t_cell_bulk$heatmapGroups <- gsub('M1XX', 'M1', t_cell_bulk$heatmapGroups)
-
-cd4_bulk <- subset(t_cell_bulk, CD_pred == "CD4")
-cd8_bulk <- subset(t_cell_bulk, CD_pred == "CD8")
-
-#Heatmaps in Fig. 2. Saved dimensions 15 x 9
-DoHeatmap(cd4_bulk, features = importantGenes$gene, group.by = c("heatmapGroups"), size = 3)+
-  guides(colour=FALSE)
-
-DoHeatmap(cd8_bulk, features = importantGenes$gene, group.by = c("heatmapGroups"), size = 3)+
-  guides(colour=FALSE)
-
-avg <- AverageExpression(t_cell_bulk, group.by = "CAR", return.seurat = TRUE)
-DoHeatmap(avg, features = importantGenes$V1, draw.lines = F)+
-  guides(colour=FALSE)
 
 
-DoHeatmap(T_cells, features = importantGenes$V1, draw.lines = F, group.by = 'day')+
-  guides(colour=FALSE)
+
+
+
 
 
