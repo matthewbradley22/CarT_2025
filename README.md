@@ -7,7 +7,7 @@ A note before running anything: <em>CarT_project_functions.R</em> is a script of
 most other scripts.
 
 1. <em>donor_analysis.R</em>: This script shows how data was originally read in and processed, including donor labelling
-from vireo output and doublet labeling.
+from vireo output and doublet labeling. Can also make Fig. 1 UMAPs by plotting deseqDat object loaded in here.
 
 2. <em>Split_donor_analysis.R</em>: The beginning of this script loads in the xgboost classifier used for ML labelling
 and labels CD4 and CD8 cells. To see the xgboost model creation look at <em>CD4CD8_classifier-copy.R</em>. May combine
