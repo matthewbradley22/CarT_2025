@@ -35,12 +35,8 @@ T_cells_noCC <- RunUMAP(T_cells_noCC, dims = 1:25)
 DimPlot(T_cells_noCC, group.by = "Phase")
 DimPlot(T_cells, group.by = "Phase")
 
-# T_cells_noCC[[]] %>% filter(CAR_pred == 1 & CAR == 'M1XX') %>% group_by(day, CD_pred) %>% dplyr::summarise(amount = n()) %>% 
-#   ggplot(aes(x = day, y = amount, fill = CD_pred))+
-#   geom_bar(position="dodge", stat="identity")+
-#   ggtitle('M1XX')
 
-
+#Create pseudobulk UMAPs for fig 2
 T_cells_noCC$CAR_pred <- as.factor(T_cells_noCC$CAR_pred)
 bulk_noCC <- getPseudoBulkObject(T_cells_noCC, c("CAR","hypoxia", "Phase", "donor_id", "carExpression", "day", "CD_pred"), return.Seurat = TRUE)
 cd4_bulk_noCC = subset(bulk_noCC, CD_pred == "CD4")
@@ -61,12 +57,30 @@ ElbowPlot(cd8_bulk_noCC, ndims = 30)
 cd8_bulk_noCC <- FindNeighbors(cd8_bulk_noCC, dims = 1:20)
 cd8_bulk_noCC <- FindClusters(cd8_bulk_noCC, resolution = 0.5)
 cd8_bulk_noCC <- RunUMAP(cd8_bulk_noCC, dims = 1:20)
-#saveRDS(cd4_bulk_noCC, "/pfs/stor10/users/home/m/mb223/mystore/cartdata/data/cd4_bulk_noCC.rds")
-
-#saveRDS(cd8_bulk_noCC, "/pfs/stor10/users/home/m/mb223/mystore/cartdata/data/cd8_bulk_noCC.rds")
 
 #Plotting for figure 2
-DimPlot(cd8_bulk_noCC, group.by = "day")+ggtitle("CD8 Day UMAP")
+varsOfInterest <- c("CAR","hypoxia", "Phase", "donor_id", "carExpression", "day")
+titles = c('CD4 CAR UMAP', 'CD4 Hypoxia UMAP', 'CD4 Phase UMAP', 'CD4 Donor UMAP', 'CD4 CAR Expression UMAP', 'CD4 Day UMAP')
+titles_cd8 = c('CD8 CAR UMAP', 'CD8 Hypoxia UMAP', 'CD8 Phase UMAP', 'CD8 Donor UMAP', 'CD8 CAR Expression UMAP', 'CD8 Day UMAP')
+
+for(i in 1:length(varsOfInterest)){
+  var = varsOfInterest[i]
+  pdf(file = paste0('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/pseudobulk/umaps/CD4', var, '.pdf'), width = 6, height = 6)
+  print(DimPlot(cd4_bulk_noCC, group.by = var) + ggtitle(titles[i]) +
+          theme(plot.title = element_text(size = 28, face = "bold"),
+                legend.text=element_text(size=18)))
+  dev.off()
+}
+
+for(i in 1:length(varsOfInterest)){
+  var = varsOfInterest[i]
+  pdf(file = paste0('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/pseudobulk/umaps/CD8', var, '.pdf'), width = 6, height = 6)
+  print(DimPlot(cd8_bulk_noCC, group.by = var) + ggtitle(titles_cd8[i])+
+          theme(plot.title = element_text(size = 28, face = "bold"),
+                legend.text=element_text(size=18))) 
+  dev.off()
+}
+
 
 # #CD cells
 # CD4 <- subset(T_cells, CD_pred == "CD4")
