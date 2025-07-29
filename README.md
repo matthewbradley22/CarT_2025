@@ -28,4 +28,9 @@ public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Se
 
 <em>hypoxiaAnalysis.R</em>: This script is mostly exploratory analysis, UMAPS, volcano plots etc...
 
+<em> CAR_classifier-copy.R</em> and <em>CD4CD8_classifier-copy.R</em> are scripts where the machine learning was done for labelling cells.
+I also saved the xgboost models for reloading (my understanding is xgboost is stochastic, so rerunning these scripts will label cells slightly
+differently each time. Which is why I saved the models themselves)
+
+
 
