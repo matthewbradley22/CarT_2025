@@ -14,9 +14,9 @@ source("mystore/cartdata/scripts/CarT_project_functions.R")
 #Load here for t cells with only singlets  (vireo and scdblfinder used), and  no d0 hypoxia groups. 
 deseqDat <- LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 
+#Assigns cell phase to each cell. Can skip this because deseqDat is now saved with phase included
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
-
 deseqDat <- CellCycleScoring(deseqDat, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
 
 day7 <- subset(deseqDat, day == "D7")
@@ -26,6 +26,28 @@ CD4 <- subset(deseqDat, CD_pred == "CD4")
 CD8 <- subset(deseqDat, CD_pred == "CD8")
 
 #Plot cell cycle
+#Saving 9x5 dimensions
+totalCountsCD4 = CD4[[]] %>% group_by(day, CAR, hypoxia) %>% summarise(total = n())
+barPlotDatCD4 <- CD4[[]] %>% group_by(day, CAR, hypoxia, Phase) %>% summarise(total = n()) 
+barPlotDatCD4$overallCounts =rep(totalCountsCD4$total, each = 3)
+barPlotDatCD4 %>% mutate(group = paste(day, CAR, hypoxia, sep = "_")) %>% 
+  mutate(proportion = total/overallCounts) %>% 
+  ggplot(aes(x = factor(group, levels = unique(group)), y = proportion, fill = Phase))+
+  geom_bar(stat = 'identity')+
+  theme(axis.text.x = element_text(angle =90, vjust = 0.6, size = 13))+
+  ggtitle("Cell Phase CD4")
+
+totalCountsCD8 = CD8[[]] %>% group_by(day, CAR, hypoxia) %>% summarise(total = n())
+barPlotDatCD8 <- CD8[[]] %>% group_by(day, CAR, hypoxia, Phase) %>% summarise(total = n()) 
+barPlotDatCD8$overallCounts =rep(totalCountsCD8$total, each = 3)
+barPlotDatCD8 %>% mutate(group = paste(day, CAR, hypoxia, sep = "_")) %>% 
+  mutate(proportion = total/overallCounts) %>% 
+  ggplot(aes(x = factor(group, levels = unique(group)), y = proportion, fill = Phase))+
+  geom_bar(stat = 'identity')+
+  theme(axis.text.x = element_text(angle =90, vjust = 0.6, size = 13))+
+  ggtitle("Cell Phase CD8")
+
+#Split plots by day instead
 totalCounts = day7[[]] %>% group_by(hypoxia, CAR) %>% summarise(total = n())
 
 barPlotDat7 <- day7[[]] %>% group_by(hypoxia, CAR,Phase) %>% summarise(total = n()) 
@@ -46,26 +68,6 @@ barPlotDat13 %>% mutate(group = paste(hypoxia, CAR, sep = "_")) %>%
   geom_bar(stat = 'identity')+
   theme(axis.text.x = element_text(angle =45, vjust = 0.6))+
   ggtitle("Cell Phase Day 13")
-
-totalCountsCD4 = CD4[[]] %>% group_by(day, CAR, hypoxia) %>% summarise(total = n())
-barPlotDatCD4 <- CD4[[]] %>% group_by(day, CAR, hypoxia, Phase) %>% summarise(total = n()) 
-barPlotDatCD4$overallCounts =rep(totalCountsCD4$total, each = 3)
-barPlotDatCD4 %>% mutate(group = paste(day, CAR, hypoxia, sep = "_")) %>% 
-  mutate(proportion = total/overallCounts) %>% 
-  ggplot(aes(x = factor(group, levels = unique(group)), y = proportion, fill = Phase))+
-  geom_bar(stat = 'identity')+
-  theme(axis.text.x = element_text(angle =90, vjust = 0.6))+
-  ggtitle("Cell Phase CD4")
-
-totalCountsCD8 = CD8[[]] %>% group_by(day, CAR, hypoxia) %>% summarise(total = n())
-barPlotDatCD8 <- CD8[[]] %>% group_by(day, CAR, hypoxia, Phase) %>% summarise(total = n()) 
-barPlotDatCD8$overallCounts =rep(totalCountsCD8$total, each = 3)
-barPlotDatCD8 %>% mutate(group = paste(day, CAR, hypoxia, sep = "_")) %>% 
-  mutate(proportion = total/overallCounts) %>% 
-  ggplot(aes(x = factor(group, levels = unique(group)), y = proportion, fill = Phase))+
-  geom_bar(stat = 'identity')+
-  theme(axis.text.x = element_text(angle =90, vjust = 0.6))+
-  ggtitle("Cell Phase CD8")
 
 #Cell cycle anaysis
 test <- multinom(Phase ~ hypoxia + CAR, data = day7[[]])
@@ -91,7 +93,7 @@ getPCAGrid(dds7, c("hypoxia", "CAR", "donor_id", "Phase"), rowNum = 2)
 getPCAGrid(dds13, c("hypoxia", "CAR", "donor_id", "Phase"), rowNum = 2)
 
 
-#### Examine variables overall effects on model ####
+#### Examine variables overall effects on model. This was an early plan that we didn't follow up on ####
 # Run DESeq2 differential expression analysis
 #LRT to compare to reduced formula
 #Found it difficult to write a function for these lines because reduced won't take a string
