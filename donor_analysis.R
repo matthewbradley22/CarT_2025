@@ -24,7 +24,7 @@ adata$cell = rownames(adata[[]])
 #Load here to read in t cells with doublets still present
 tCell_adata <- LoadSeuratRds("./mystore/cartdata/data/tCell_adata_with_doublets.rds")
 
-#Load here for t cells with only singlets  (vireo and scdblfinder used), and  no d0 hypoxia groups. 
+#Load here for t cells with only singlets (vireo and scdblfinder used), and  no d0 hypoxia groups. 
 deseqDat <- LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 
 #### Label Donors ####
@@ -39,6 +39,7 @@ DonorIDs_four$donor_id = factor(DonorIDs_four$donor_id)
 #Merge donor ids to seurat object
 adata[[]] = left_join(adata[[]], DonorIDs_four, by = "cell")
 
+#This gets rid of about 1,000 or 1% of cells
 adata <- subset(adata, subset = nFeature_RNA < 10000 & nCount_RNA < 50000 & percent.mt < 20)
 
 # Data preprocessing
@@ -55,10 +56,7 @@ adata <- FindNeighbors(adata, dims = 1:20)
 adata <- FindClusters(adata, resolution = 0.5)
 adata <- RunUMAP(adata, dims = 1:20)
 
-#Load cell type from TCR_Analysis script
-#adata[[]] = left_join(adata[[]], cell_types, by = "cell")
 DimPlot(adata, reduction = "umap", label = T)
-#table(adata$cell_type)
 
 #Subset to just t cells
 cd3GeneList = list(c("CD3G", "CD3D", "CD3E"))
@@ -91,10 +89,11 @@ DimPlot(tCell_adata, reduction = "umap", label = T)
 #Look for doublets.
 #Sample is used to indicate specific captures in multiplexed setups
 
+#### Doublet labeling ####
 #Label cells based on capture
 tCell_adata$capture <- factor(substr(tCell_adata$cell, nchar(tCell_adata$cell)-1,
                                      nchar(tCell_adata$cell)))
-
+#Label with scDblFinder package
 sce = as.SingleCellExperiment(tCell_adata)
 sce <- scDblFinder(sce,
                    nfeatures = 750,
@@ -105,6 +104,7 @@ table(sce$scDblFinder.class)
 tCell_adata$DblFinderDoublets = sce$scDblFinder.class
 table(tCell_adata$donor_id, tCell_adata$DblFinderDoublets)
 
+#Create column based on vireo and scDblFinder assignments
 tCell_adata[[]] <- tCell_adata[[]] %>% mutate(doubletAgreement = case_when(
   donor_id == "doublet" & DblFinderDoublets == "doublet" ~ "agreed_doublet",
   donor_id != "doublet" & DblFinderDoublets == "doublet" ~ "scdblDoublet",
@@ -127,13 +127,13 @@ tCell_adata[[]] %>% group_by(seurat_clusters, doubletAgreement) %>% summarise(co
 
 VlnPlot(tCell_adata, features = "nCount_RNA")
 tCell_adata[[]] %>% group_by(seurat_clusters, doubletAgreement) %>% summarise(counts = n())
+
 #Remove anything labelled a doublet by vireo or scdblfinder 
 tCell_adata = subset(tCell_adata, doubletAgreement == "singlet" & donor_id != "unassigned")
 
-#Deseq2 
+#Remove small hypoxia group
 deseqDat = subset(tCell_adata, hypoxia != "d0" & hypoxia != "d0+il2")
 
-#### Start here with deseqDat loaded above ####
 #Relook at umap structure
 deseqDat <- FindVariableFeatures(deseqDat)
 deseqDat <- ScaleData(deseqDat)
@@ -143,13 +143,24 @@ ElbowPlot(deseqDat, ndims = 30)
 deseqDat <- FindNeighbors(deseqDat, dims = 1:25)
 deseqDat <- FindClusters(deseqDat, resolution = 0.5)
 deseqDat <- RunUMAP(deseqDat, dims = 1:20)
-DimPlot(deseqDat, group.by = "hypoxia")
+
+#### Start here with deseqDat loaded above ####
+Idents(deseqDat) = 'seurat_clusters'
+DimPlot(deseqDat)
+DimPlot(deseqDat, group.by = "CD_pred")
 
 deseqDat$hypoxia = factor(deseqDat$hypoxia)
 deseqDat$CAR = factor(deseqDat$CAR)
 deseqDat$donor_id = factor(deseqDat$donor_id)
 deseqDat$day = factor(deseqDat$day)
 
+#Look at which variables are biased towards certain seurat clusters
+table(deseqDat$donor_id, deseqDat$seurat_clusters)
+table(deseqDat$hypoxia, deseqDat$seurat_clusters)
+table(deseqDat$day, deseqDat$seurat_clusters)
+table(deseqDat$CAR, deseqDat$seurat_clusters)
+
+#See which variable is most indicative of seurat cluster
 
 
 ####This was an early attempt to see overall effects of covariates on data using MANOVA. ####
