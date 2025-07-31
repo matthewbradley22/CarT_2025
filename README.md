@@ -17,7 +17,7 @@ the classification from Split_donor_analysis and add it to donor_analysis to red
 as some other cell phase plots
 
 4. <em>cellCycleRegressed.R</em>: This script was used to regress out cell cycle, and the resulting data
-called T_cells_noCC is used in all downstream analyses. Also has Figure 2 UMAP code
+called T_cells_noCC is used in downstream analyses involving DEGs. Also has Figure 2 UMAP code
 
 5. <em>DEGPathAnalyses.R</em>: Has code to create heatmaps of 50 top important genes in Fig 2
 
