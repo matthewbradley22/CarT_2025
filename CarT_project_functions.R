@@ -1,8 +1,10 @@
+#Load packages used in functions
 library(Seurat)
 library(gridExtra)
 library(DESeq2)
 library(ggplot2)
 library(dplyr)
+
 #Turn single cell object into a pseudobulk rna object based on variables of interest
 getPseudoBulkObject <- function(dat, designVars, intercept = "include", return.Seurat = FALSE){
   bulk <- AggregateExpression(
@@ -142,6 +144,7 @@ plotTopGenes <- function(dat){
     ylab("Number of DEGs")
 }
 
+#Get loadings from PCA of DESeq object
 getPCALoadings <- function(dat, numGenes = 500, numCom = 2){
   dat_vst <- vst(dat)
   rv <- rowVars(assay(dat_vst)) #Variance per row
@@ -151,7 +154,7 @@ getPCALoadings <- function(dat, numGenes = 500, numCom = 2){
   loadings
 }
 
-
+#These next 2 functions are for doing gene ontology analysis in R
 prepTopGO <- function(dat, PC = 1){
   entrez <- mapIds(org.Hs.eg.db, keys =  names(dat[,PC]), 
                    keytype = "SYMBOL", column="ENTREZID")
