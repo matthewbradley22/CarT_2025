@@ -22,10 +22,12 @@ called T_cells_noCC is used in all downstream analyses. Also has Figure 2 UMAP c
 5. <em>DEGPathAnalyses.R</em>: Has code to create heatmaps of 50 top important genes in Fig 2
 
 6. <em>MitoAnalysis.R</em> includes mitochondrial analyses including creating correlation heatmap with other genes, dotplot of individual mitochondrial genes, and violin plots of variables vs percent.mt
+   
+7. <em>dengPublicData.R</em>: Create scatter plots of our data lfc versus deng public data response groups. This script is where
+public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Sec8 is read in and processed, and further analyses are done.
 ### Other:
 
-<em>dengPublicData.R</em>: Create scatter plots of our data lfc versus deng public data response groups. This script is where
-public data from Deng paper https://www.nature.com/articles/s41591-020-1061-7#Sec8 is read in and processed
+
 
 <em>hypoxiaAnalysis.R</em>: This script is mostly exploratory analysis, UMAPS, volcano plots etc...
 
