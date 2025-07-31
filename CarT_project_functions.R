@@ -144,7 +144,7 @@ plotTopGenes <- function(dat){
     ylab("Number of DEGs")
 }
 
-#Get loadings from PCA of DESeq object
+#Get loadings from PCA of DESeq object. Called in split_donor_analysis.R
 getPCALoadings <- function(dat, numGenes = 500, numCom = 2){
   dat_vst <- vst(dat)
   rv <- rowVars(assay(dat_vst)) #Variance per row

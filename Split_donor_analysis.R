@@ -22,8 +22,8 @@ T_cells <- LoadSeuratRds("./mystore/cartdata/data/tcell_deseqdat_singlets.rds")
 
 T_cells_noCC <- LoadSeuratRds('mystore/cartdata/data/T_cells_noCC.rds')
 
-#Machine learning approach to distinguish CD4 and 8 cells. Variable features from data 
-#either in CAR_classifier.R or CD4CD8_classifier.R depending on which model
+#Machine learning approach to distinguish CD4 and 8 cells. Model creation is in
+#CD4CD8_classifier.R. 
 
 #car_classifier <- xgb.load("mystore/cartdata/data/car_classifier.model")
 #CAR_genes <- readRDS("mystore/cartdata/data/CAR_classifier_variableGenes.rds")
@@ -59,7 +59,61 @@ T_cells$CD_pred <- preds_outcome
 # colnames(carPreds) <- c("CAR", "Pred no car", "Pred car")
 
 
+
+#### HLA gene analysis ####
+#Look at HLA genes
+HLA_genes <- rownames(T_cells[['RNA']]$data)[grep('^HLA', rownames(T_cells[['RNA']]$data))]
+HLA_genes <- sort(HLA_genes)
+DotPlot(T_cells, features = HLA_genes, group.by = 'hypoxia') + 
+  theme(axis.text.x=element_text(angle=90))
+
+#Group hla genes by class
+class1 <- c('HLA-A', 'HLA-B', 'HLA-C', 'HLA-E', 'HLA-F', 'HLA-G', 'HLA-K', 'HLA-L')
+class2 <- c('HLA-DP', 'HLA-DQ', 'HLA-DR', 'HLA-DM', 'HLA-DO')
+class1Pseudogenes <- c('HLA-H', 'HLA-J', 'HLA-N', 'HLA-P', 'HLA-S', 'HLA-T', 'HLA-U', 'HLA-V', 'HLA-W', 'HLA-Z')
+hla_df <- data.frame(gene = HLA_genes)
+
+hla_df <- hla_df %>% mutate(class = case_when(gene %in% class1 ~ 'Class1',
+                                              substr(gene, 1,6) %in% class2 ~'Class2',
+                                              gene %in% class1Pseudogenes ~ 'pseudogene')) %>% 
+  drop_na()
+
+class2_present <- subset(hla_df, class == 'Class2')$gene
+T_cells <- AddModuleScore(T_cells, features = list(class1), name = 'HLA_class1_')
+T_cells <- AddModuleScore(T_cells, features = list(class2_present), name = 'HLA_class2_')
+
+#Create HLA plots. can turn this into loop
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_1_CAR.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class1_1', group.by = 'CAR', pt.size = 0) + ggtitle('HLA Class 1')
+#labs(caption = paste('Class 1 genes:', paste(class1, collapse = ' ')))
+#theme(plot.caption=element_text(color="#BA6A00", size = 13))
+dev.off()
+
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_1_Hypoxia.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class1_1', group.by = 'hypoxia',  pt.size = 0)+ ggtitle('HLA Class 1')
+# labs(caption = paste('Class 1 genes:', paste(class1, collapse = ' ')))+
+#heme(plot.caption=element_text(color="#BA6A00"))
+dev.off()
+
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_2_CAR.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class2_1', group.by = 'CAR',  pt.size = 0)+ ggtitle('HLA Class 2')
+dev.off()
+
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_2_Hypoxia.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class2_1', group.by = 'hypoxia',  pt.size = 0)+ ggtitle('HLA Class 2')
+dev.off()
+
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_1_CD.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class1_1', group.by = 'CD_pred', pt.size = 0) + ggtitle('HLA Class 1')
+dev.off()
+
+pdf('/pfs/stor10/users/home/m/mb223/mystore/cartdata/Plots/HLA_class_plots/HLA_2_CD.pdf', width = 8, height = 5)
+VlnPlot(T_cells, 'HLA_class2_1', group.by = 'CD_pred', pt.size = 0) + ggtitle('HLA Class 2')
+dev.off()
+
+
 ####Looking at PCA loadings, running Gene ontology on important genes and plotting results #### 
+
 #Function to prepare data for topGO analysis
 #Get top 5 pcs, get genes and loading value for given PC (which PC)
 getTopGODat <- function(seuObj, designVars, whichPC = 1){
@@ -71,10 +125,7 @@ getTopGODat <- function(seuObj, designVars, whichPC = 1){
 
 CD4_day7 <- subset(T_cells, day == "D7" & CD_pred == 'CD4')
 
-genes_cd4_day7 <- getTopGODat(CD4_day7, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 3)
-genes_cd8_day7 <-  getTopGODat(CD8_day7, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 1)
-genes_cd4_day13 <- getTopGODat(CD4_day13, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 2)
-genes_cd8_day13 <- getTopGODat(CD8_day13, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 2)
+genes_cd4_day7 <- getTopGODat(CD4_day7, c("CAR","hypoxia", "Phase", "donor_id"), whichPC = 1)
 
 #topGO wants a function that gives a score threshold for genes.
 #We have genes with loading values and want to take top 100 absolute values
@@ -112,33 +163,14 @@ data.frame(genes_cd4_day7[which(names(genes_cd4_day7) %in% names(geneNames))])
 ####Example comparing one group (untransduced) to mean of other groups####
 CD4_bulk <- subset(T_cells, CD_pred == 'CD4')
 CD4_bulk <- getPseudoBulkObject(CD4_bulk, designVars = c("CAR","hypoxia", "Phase", "donor_id", "day"))
-CD4_deseq <- DESeq(CD4_bulk)
+
+#I believe betaPrior = TRUE assumes 0 centered prior normal distribution. Leads to resultsNames(data)
+#returning each group, rather than pairwise comparisons. Can then use these to compare one group to mean of others
+CD4_deseq <- DESeq(CD4_bulk, betaPrior = TRUE)
+resultsNames(CD4_deseq)
 
 resCD4 = deseqOneVsMean(CD4_deseq, "CARuntransduced", c("CARM1XX", "CARM28z", "CARMBBz"))
-arrange(data.frame(resCD4), padj) %>% filter(log2FoldChange > 0 & padj < 1E-20) %>% 
-  rownames()
-
-
-
-
-getGeneOntResults <- function(geneList){
-  geneList <- geneList[order(geneList$padj),]  %>% as.data.frame() %>% filter(log2FoldChange>0) %>% 
-    dplyr::select(log2FoldChange, padj)
-  
-  topGenes <- function () 
-  {
-    topGenes <- head(geneList, n =100) #Get top 100 genes by absolute value
-    return(rownames(topGenes)) 
-  }
-  
-  
-  dat <- new("topGOdata",
-                  description = "Simple session", ontology = "BP",
-                  allGenes = rownames(geneList), geneSel = topGenes,
-                  nodeSize = 10,
-                  annot = annFUN.org, mapping = "org.Hs.eg.db")
-}
-
+arrange(data.frame(resCD4), padj) %>% filter(log2FoldChange > 0 & padj < 1E-20) 
 
 #Split donor analysis of each variable
 CD4_day7$CAR<-relevel(CD4_day7$CAR, ref="untransduced")
@@ -173,6 +205,3 @@ virusCounts <- virusCounts %>% pivot_longer(!CAR, names_to = 'Virus', values_to 
 ggplot(virusCounts, aes(x = CAR, y = PercentExpressing, fill = Virus))+
   geom_bar(stat = 'identity', position="dodge") + ggtitle('Virus Expression by CAR group (CD8 cells)')+
   ylab('Percent cells expressing virus')
-
-
-
